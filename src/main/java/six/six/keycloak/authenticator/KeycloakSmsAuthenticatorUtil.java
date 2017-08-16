@@ -74,10 +74,6 @@ public class KeycloakSmsAuthenticatorUtil {
         return text;
     }
 
-    public static boolean isNotEmpty(String s) {
-        return (s != null && s.length() > 0);
-    }
-
     public static String setDefaultCountryCodeIfZero(String mobileNumber) {
         if (mobileNumber.startsWith("07")) {
             mobileNumber = "+44" + mobileNumber.substring(1);
@@ -103,16 +99,6 @@ public class KeycloakSmsAuthenticatorUtil {
         }
     }
 
-    private static String getPath(String mobileNumber, URL smsURL, String smsText) throws UnsupportedEncodingException {
-        String path = smsURL.getPath();
-        if (smsURL.getQuery() != null && smsURL.getQuery().length() > 0) {
-            path += smsURL.getQuery();
-        }
-        path = path.replaceFirst("\\{message\\}", URLEncoder.encode(smsText, "UTF-8"));
-        path = path.replaceFirst("\\{phonenumber\\}", URLEncoder.encode(mobileNumber, "UTF-8"));
-        return path;
-    }
-
     static String getSmsCode(long nrOfDigits) {
         if (nrOfDigits < 1) {
             throw new RuntimeException("Number of digits must be bigger than 0");
@@ -122,5 +108,9 @@ public class KeycloakSmsAuthenticatorUtil {
         Random r = new Random();
         long code = (long) (r.nextFloat() * maxValue);
         return Long.toString(code);
+    }
+
+    public static boolean validateTelephoneNumber(String telephoneNumber) {
+        return telephoneNumber.matches("^(?:(?:\\(?(?:0(?:0|11)\\)?[\\s-]?\\(?|\\+)44\\)?[\\s-]?(?:\\(?0\\)?[\\s-]?)?)|(?:\\(?0))(?:(?:\\d{5}\\)?[\\s-]?\\d{4,5})|(?:\\d{4}\\)?[\\s-]?(?:\\d{5}|\\d{3}[\\s-]?\\d{3}))|(?:\\d{3}\\)?[\\s-]?\\d{3}[\\s-]?\\d{3,4})|(?:\\d{2}\\)?[\\s-]?\\d{4}[\\s-]?\\d{4}))(?:[\\s-]?(?:x|ext\\.?|\\#)\\d{3,4})?$");
     }
 }
