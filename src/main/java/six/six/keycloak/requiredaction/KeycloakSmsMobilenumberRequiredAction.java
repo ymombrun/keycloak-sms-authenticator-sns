@@ -3,12 +3,11 @@ package six.six.keycloak.requiredaction;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.RequiredActionContext;
 import org.keycloak.authentication.RequiredActionProvider;
-import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
-import six.six.keycloak.authenticator.KeycloakSmsAuthenticatorConstants;
-import six.six.keycloak.authenticator.KeycloakSmsAuthenticatorUtil;
 
 import javax.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.List;
 
 import static six.six.keycloak.authenticator.KeycloakSmsAuthenticatorUtil.validateTelephoneNumber;
 
@@ -27,7 +26,14 @@ public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProv
         logger.debug("requiredActionChallenge called ...");
 
         UserModel user = context.getUser();
-        String mobileNumber = KeycloakSmsAuthenticatorUtil.getAttributeValue(user, KeycloakSmsAuthenticatorConstants.ATTR_MOBILE);
+
+        List<String> mobileNumberCreds = user.getAttribute("mobile_number");
+
+        String mobileNumber = null;
+
+        if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty()) {
+            mobileNumber = mobileNumberCreds.get(0);
+        }
 
         if (mobileNumber != null && validateTelephoneNumber(mobileNumber)) {
             // Mobile number is configured
@@ -45,13 +51,26 @@ public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProv
         String answer = (context.getHttpRequest().getDecodedFormParameters().getFirst("mobile_number"));
         String answer2 = (context.getHttpRequest().getDecodedFormParameters().getFirst("mobile_number_confirm"));
         if (answer != null && answer.length() > 0 && answer.equals(answer2) && validateTelephoneNumber(answer)) {
-            UserCredentialModel input = new UserCredentialModel();
-            input.setType(KeycloakSmsAuthenticatorConstants.ATTR_MOBILE);
-            input.setValue(answer);
-            context.getSession().userCredentialManager().updateCredential(context.getRealm(), context.getUser(), input);
+            logger.debug("Valid matching mobile numbers supplied, save credential ...");
+            List<String> mobileNumber = new ArrayList<String>();
+            mobileNumber.add(answer);
+
+            UserModel user = context.getUser();
+            user.setAttribute("mobile_number", mobileNumber);
+
             context.success();
+        } else if (answer != null && answer2 !=null && !answer.equals(answer2)) {
+            logger.debug("Supplied mobile number values do not match...");
+            Response challenge = context.form()
+                    .setError("Entered mobile numbers do not match.")
+                    .createForm("sms-validation-mobile-number.ftl");
+            context.challenge(challenge);
         } else {
-            context.failure();
+            logger.debug("Either one of two fields wasnt complete, or the first contains an invalid number...");
+            Response challenge = context.form()
+                    .setError("Please enter a valid UK telephone number.")
+                    .createForm("sms-validation-mobile-number.ftl");
+            context.challenge(challenge);
         }
     }
 

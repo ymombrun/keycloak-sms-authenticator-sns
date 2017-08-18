@@ -38,11 +38,14 @@ public class KeycloakSmsAuthenticator implements Authenticator {
         UserModel user = context.getUser();
         AuthenticatorConfigModel config = context.getAuthenticatorConfig();
 
-        List mobileNumberCreds = context.getSession().userCredentialManager().getStoredCredentialsByType(context.getRealm(), context.getUser(), KeycloakSmsAuthenticatorConstants.ATTR_MOBILE);
-        CredentialModel mobileNumberCred = (CredentialModel) mobileNumberCreds.get(0);
-        String mobileNumber = mobileNumberCred.getValue();
+        List<String> mobileNumberCreds = user.getAttribute("mobile_number");
 
-        //String mobileNumber = KeycloakSmsAuthenticatorUtil.getAttributeValue(user, KeycloakSmsAuthenticatorConstants.ATTR_MOBILE);
+        String mobileNumber = null;
+
+        if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty()) {
+            mobileNumber = mobileNumberCreds.get(0);
+        }
+
         if (mobileNumber != null) {
             // The mobile number is configured --> send an SMS
             long nrOfDigits = KeycloakSmsAuthenticatorUtil.getConfigLong(config, KeycloakSmsAuthenticatorConstants.CONF_PRP_SMS_CODE_LENGTH, 8L);
@@ -94,7 +97,7 @@ public class KeycloakSmsAuthenticator implements Authenticator {
                     context.attempted();
                 } else if (context.getExecution().getRequirement() == AuthenticationExecutionModel.Requirement.REQUIRED) {
                     challenge = context.form()
-                            .setError((String) context.getSession().getAttribute(KeycloakSmsAuthenticatorConstants.USR_CRED_MDL_SMS_CODE))
+                            .setError("Invalid code specified, please enter it again")
                             .createForm("sms-validation.ftl");
                     context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
                 } else {
