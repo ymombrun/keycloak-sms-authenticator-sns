@@ -4,80 +4,34 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>six.six</groupId>
-    <artifactId>keycloak-sms-authenticator-sns</artifactId>
-    <version>2.0.0</version>
+    <groupId>org.keycloak</groupId>
+    <artifactId>sms-authenticator-validator</artifactId>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.keycloak>4.8.0.Final</version.keycloak>
-        <version.wildfly>11.0.0.Final</version.wildfly>
-        <version.httpclient>4.5.5</version.httpclient>
-        <version.libphonenumber>8.9.0</version.libphonenumber>
+        <jboss.logging.version>3.3.1.Final</jboss.logging.version>
+        <version.keycloak>4.8.2.Final</version.keycloak>
         <version.aws-java-sdk-sns>1.11.173</version.aws-java-sdk-sns>
+        <version.libphonenumber>8.9.0</version.libphonenumber>
+        <jboss-jaxrs-api_2.1_spec>1.0.1.Final</jboss-jaxrs-api_2.1_spec>
         <version.commons-lang>2.6</version.commons-lang>
-        <version.picketbox>5.0.2.Final</version.picketbox>
     </properties>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>classworlds:classworlds</exclude>
-                                    <exclude>junit:junit</exclude>
-                                    <exclude>jmock:*</exclude>
-                                    <exclude>*:xml-apis</exclude>
-                                    <exclude>org.apache.maven:lib:tests</exclude>
-                                </excludes>
-                            </artifactSet>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.keycloak.bom</groupId>
-                <artifactId>keycloak-spi-bom</artifactId>
-                <version>${version.keycloak}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.wildfly.bom</groupId>
-                <artifactId>wildfly</artifactId>
-                <version>${version.wildfly}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
+            <version>${version.keycloak}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi</artifactId>
+            <version>${version.keycloak}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -89,18 +43,25 @@
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
+            <version>${jboss.logging.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-services</artifactId>
-            <version>${version.keycloak}</version>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <version>${jboss-jaxrs-api_2.1_spec}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${version.httpclient}</version>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jaxrs</artifactId>
+            <version>3.0.24.Final</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <version>3.0.24.Final</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -123,18 +84,11 @@
             <groupId>com.googlecode.libphonenumber</groupId>
             <artifactId>libphonenumber</artifactId>
             <version>${version.libphonenumber}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
             <version>${version.commons-lang}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.picketbox</groupId>
-            <artifactId>picketbox</artifactId>
-            <version>${version.picketbox}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

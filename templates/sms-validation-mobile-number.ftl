@@ -8,21 +8,11 @@
         <form id="kc-totp-login-form" class="${properties.kcFormClass!}" action="${url.loginAction}" method="post">
             <div class="${properties.kcFormGroupClass!}">
                 <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="totp" class="${properties.kcLabelClass!}">Please enter your mobile number</label>
+                    <label for="totp" class="${properties.kcLabelClass!}">${msg("sms-auth.msg.number.input")}</label>
                 </div>
 
                 <div class="${properties.kcInputWrapperClass!}">
                     <input id="mobile_number" name="mobile_number" type="text" class="${properties.kcInputClass!}" />
-                </div>
-            </div>
-
-            <div class="${properties.kcFormGroupClass!}">
-                <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="totp" class="${properties.kcLabelClass!}">Please confirm your mobile number</label>
-                </div>
-
-                <div class="${properties.kcInputWrapperClass!}">
-                    <input id="mobile_number" name="mobile_number_confirm" type="text" class="${properties.kcInputClass!}" />
                 </div>
             </div>
 
