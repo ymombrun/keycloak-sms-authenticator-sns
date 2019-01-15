@@ -9,7 +9,10 @@ import org.keycloak.authentication.RequiredActionProvider;
 import org.keycloak.models.UserModel;
 import org.keycloak.theme.Theme;
 
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -58,9 +61,11 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
             logger.debug("SMS validation required ...");
 
             KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
-
             if (provider.sendSmsCode(mobileNumber, context)) {
-                Response challenge = context.form().createForm("sms-validation.ftl");
+                Response challenge = context.form()
+                        .setAttribute("mobile_number", user.getAttributes().get("mobile_number").get(0))
+                        .createForm("sms-validation.ftl");
+
                 context.challenge(challenge);
             } else {
                 Response challenge = context.form()

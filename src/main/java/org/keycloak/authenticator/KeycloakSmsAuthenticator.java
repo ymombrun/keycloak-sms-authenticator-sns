@@ -62,7 +62,9 @@ public class KeycloakSmsAuthenticator implements Authenticator {
                 KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
 
                 if (provider.sendSmsCode(mobileNumber, context)) {
-                    Response challenge = context.form().createForm("sms-validation.ftl");
+                    Response challenge = context.form()
+                            .setAttribute("mobile_number", mobileNumber)
+                            .createForm("sms-validation.ftl");
                     context.challenge(challenge);
                 } else {
                     Response challenge = context.form()
