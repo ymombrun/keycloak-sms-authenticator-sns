@@ -45,4 +45,5 @@ public class KeycloakSmsConstants {
     // Verification
     public static final String MOBILE_VERIFICATION_ENABLED = "mobile_verification_enabled";
     public static final String MOBILE_ASKFOR_ENABLED = "mobile_askfor_enabled";
+    public static final String CHECK_NUMBER_ALREADY_EXISTS = "check_number_already_exists";
 }

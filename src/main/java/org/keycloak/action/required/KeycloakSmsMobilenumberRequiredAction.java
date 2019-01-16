@@ -1,17 +1,16 @@
 package org.keycloak.action.required;
 
-import org.keycloak.sms.KeycloakSmsConstants;
-import org.keycloak.sms.impl.KeycloakSmsUtil;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.RequiredActionContext;
 import org.keycloak.authentication.RequiredActionProvider;
 import org.keycloak.models.UserModel;
-import org.keycloak.theme.Theme;
+import org.keycloak.sms.KeycloakSmsConstants;
+import org.keycloak.sms.KeycloakSmsSenderService;
+import org.keycloak.sms.impl.KeycloakSmsUtil;
 
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 
 public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProvider {
@@ -23,63 +22,97 @@ public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProv
     }
 
     public void requiredActionChallenge(RequiredActionContext context) {
-        logger.debug("requiredActionChallenge called ...");
+        logger.debug("requiredActionChallenge for mobileNumber required action called ...");
 
         UserModel user = context.getUser();
-
         List<String> mobileNumberCreds = user.getAttribute(KeycloakSmsConstants.ATTR_MOBILE);
-
         String mobileNumber = null;
 
-        if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty()) {
-            mobileNumber = mobileNumberCreds.get(0);
-        }
-
-        Theme theme = null;
-        Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
         try {
-            theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
+            if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty()) {
+                mobileNumber = KeycloakSmsUtil.checkAndFormatMobileNumber(mobileNumberCreds.get(0));
+            }
         } catch (Exception e) {
-            logger.error("Unable to get theme required to send SMS", e);
+            logger.warn("Unable to format number "+e.getLocalizedMessage());
         }
 
-        if (mobileNumber != null && KeycloakSmsUtil.validateTelephoneNumber(mobileNumber, KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_REGEXP))) {
+        boolean numberAlreadyTaken = context
+                .getSession()
+                .getProvider(KeycloakSmsSenderService.class)
+                .checkNumberAlreadyTaken(
+                        mobileNumber,
+                        context.getSession(),
+                        user,
+                        context.getRealm()
+                );
+
+        if (mobileNumber != null && !numberAlreadyTaken) {
+            logger.debug("Phone number already set and valid, ignoring");
             // Mobile number is configured
             context.ignore();
         } else {
             // Mobile number is not configured or is invalid
-            Response challenge = context.form().createForm("sms-validation-mobile-number.ftl");
+            Response challenge;
+            if (numberAlreadyTaken) {
+                logger.debug("Phone number already taken, asking new one");
+                challenge = context
+                        .form()
+                        .setError("mobile_number.already.taken")
+                        .createForm("sms-validation-mobile-number.ftl");
+            } else {
+                logger.debug("No phone number set, asking one");
+                challenge = context
+                        .form()
+                        .createForm("sms-validation-mobile-number.ftl");
+            }
+
             context.challenge(challenge);
         }
     }
 
     public void processAction(RequiredActionContext context) {
-        logger.debug("processAction called ...");
+        logger.debug("processAction for mobileNumber required action called ...");
 
         String answer = (context.getHttpRequest().getDecodedFormParameters().getFirst("mobile_number"));
-        Theme theme = null;
-        Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
+        UserModel user = context.getUser();
+        String mobileNumber = null;
         try {
-            theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
+            mobileNumber = KeycloakSmsUtil.checkAndFormatMobileNumber(answer);
         } catch (Exception e) {
-            logger.error("Unable to get theme required to send SMS", e);
+            logger.warn("Unable to format number "+e.getLocalizedMessage());
         }
 
-        if (answer != null && answer.length() > 0 && KeycloakSmsUtil.validateTelephoneNumber(answer, KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_REGEXP))) {
-            logger.debug("Valid matching mobile numbers supplied, save credential ...");
-            List<String> mobileNumber = new ArrayList<String>();
-            mobileNumber.add(answer);
+        boolean numberAlreadyTaken = context
+                .getSession()
+                .getProvider(KeycloakSmsSenderService.class)
+                .checkNumberAlreadyTaken(
+                        mobileNumber,
+                        context.getSession(),
+                        user,
+                        context.getRealm()
+                );
 
-            UserModel user = context.getUser();
-            user.setAttribute(KeycloakSmsConstants.ATTR_MOBILE, mobileNumber);
+        if (mobileNumber != null && !numberAlreadyTaken) {
+            logger.debug("Valid mobile numbers supplied, save credential ...");
+            List<String> mobileNumberList = new ArrayList<String>();
+            mobileNumberList.add(mobileNumber);
+
+            user.setAttribute(KeycloakSmsConstants.ATTR_MOBILE, mobileNumberList);
             user.addRequiredAction(KeycloakSmsMobilenumberValidationRequiredAction.PROVIDER_ID);
             context.success();
         } else {
-            logger.debug("Either one of two fields wasn\'t complete, or the first contains an invalid number...");
-            Response challenge = context.form()
-                    .setError("mobile_number.no.valid")
-                    .createForm("sms-validation-mobile-number.ftl");
-            context.challenge(challenge);
+            logger.debug("The field contains an invalid number...");
+            if (numberAlreadyTaken) {
+                Response challenge = context.form()
+                        .setError("mobile_number.already.taken")
+                        .createForm("sms-validation-mobile-number.ftl");
+                context.challenge(challenge);
+            } else {
+                Response challenge = context.form()
+                        .setError("mobile_number.no.valid")
+                        .createForm("sms-validation-mobile-number.ftl");
+                context.challenge(challenge);
+            }
         }
     }
 

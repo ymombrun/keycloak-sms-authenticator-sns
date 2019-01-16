@@ -131,18 +131,14 @@ public class KeycloakSmsSenderServiceImpl implements KeycloakSmsSenderService {
             }
 
             result = smsService.send(
-                    KeycloakSmsUtil.checkMobileNumber(KeycloakSmsUtil.setDefaultCountryCodeIfZero(
-                            mobileNumber,
-                            KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_PREFIX_DEFAULT),
-                            KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_PREFIX_CONDITION))
-                    ),
+                    KeycloakSmsUtil.checkAndFormatMobileNumber(mobileNumber),
                     smsText,
                     smsUsr,
                     smsPwd
             );
             return result;
         } catch(Exception e) {
-            logger.error("Fail to send SMS " ,e );
+            logger.error("Fail to send SMS ", e );
             return false;
         }
     }
@@ -208,5 +204,24 @@ public class KeycloakSmsSenderServiceImpl implements KeycloakSmsSenderService {
         }
         logger.debug("result : " + result);
         return result;
+    }
+
+    public boolean checkNumberAlreadyTaken(String mobileNumber, KeycloakSession session, UserModel user, RealmModel realm) {
+        boolean isCheckNumberAlreadyTaken = config.getBoolean(KeycloakSmsConstants.CHECK_NUMBER_ALREADY_EXISTS);
+        logger.debug("checking number exists ? "+isCheckNumberAlreadyTaken);
+        boolean numberAlreadyTaken = false;
+        if (isCheckNumberAlreadyTaken) {
+            if (mobileNumber != null) {
+                logger.debug("search for user with phone " + mobileNumber);
+                List<UserModel> users = session
+                        .users()
+                        .searchForUserByUserAttribute("mobile_number", mobileNumber, realm);
+
+                logger.debug("search size ? " + users.size());
+                numberAlreadyTaken = users.size() > 1 || (!(users.isEmpty() || (users.size() == 1 && users.get(0).equals(user))));
+            }
+            logger.debug("Number already taken ? " + numberAlreadyTaken);
+        }
+        return numberAlreadyTaken;
     }
 }

@@ -1,6 +1,5 @@
 package org.keycloak.sms.impl;
 
-import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import org.jboss.logging.Logger;
@@ -74,17 +73,20 @@ public class KeycloakSmsUtil {
      * @param mobileNumber
      * @return formatted mobile number
      */
-    public static String checkMobileNumber(String mobileNumber) {
+    public static String checkAndFormatMobileNumber(String mobileNumber) throws Exception {
 
         PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
-        try {
-            Phonenumber.PhoneNumber phone = phoneUtil.parse(mobileNumber, null);
-            mobileNumber = phoneUtil.format(phone,
-                    PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
-        } catch (NumberParseException e) {
-            logger.error("Invalid phone number " + mobileNumber, e);
+        Phonenumber.PhoneNumber phone = phoneUtil.parse(mobileNumber, "FR");
+
+        if (!phoneUtil.getNumberType(phone).equals(PhoneNumberUtil.PhoneNumberType.MOBILE)) {
+            logger.error("Invalid mobile phone number (not a mobile)");
+            throw new Exception("Phone number is not a mobile number");
         }
-        return mobileNumber;
+
+        String formatted = phoneUtil.format(phone, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
+
+        logger.info("formatted number "+formatted+" from "+mobileNumber);
+        return formatted;
     }
 
     public static String getMessage(Theme theme, Locale locale, String key){
@@ -97,27 +99,11 @@ public class KeycloakSmsUtil {
         return result;
     }
 
-
-    public static boolean validateTelephoneNumber(String telephoneNumber, String regexp ) {
-        boolean result=true;
-        if(regexp!=null){
-            result =telephoneNumber.matches(regexp);
-        }
-        return result;
-    }
-
     public static String createMessage(String text,String code, String mobileNumber) {
         if(text !=null){
             text = text.replaceAll("%sms-code%", code);
             text = text.replaceAll("%phonenumber%", mobileNumber);
         }
         return text;
-    }
-
-    public static String setDefaultCountryCodeIfZero(String mobileNumber,String prefix ,String condition) {
-        if (prefix!=null && condition!=null && mobileNumber.startsWith(condition)) {
-            mobileNumber = prefix + mobileNumber.substring(1);
-        }
-        return mobileNumber;
     }
 }

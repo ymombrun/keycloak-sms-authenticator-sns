@@ -1,20 +1,15 @@
 package org.keycloak.action.required;
 
-import org.keycloak.sms.KeycloakSmsConstants;
-import org.keycloak.sms.KeycloakSmsSenderService;
-import org.keycloak.sms.impl.KeycloakSmsUtil;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.RequiredActionContext;
 import org.keycloak.authentication.RequiredActionProvider;
 import org.keycloak.models.UserModel;
-import org.keycloak.theme.Theme;
+import org.keycloak.sms.KeycloakSmsConstants;
+import org.keycloak.sms.KeycloakSmsSenderService;
+import org.keycloak.sms.impl.KeycloakSmsUtil;
 
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 
 /**
@@ -39,25 +34,21 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
         String mobileNumber = null;
         String mobileNumberValidation = null;
 
-        if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty()) {
-            mobileNumber = mobileNumberCreds.get(0);
-        }
-        if (mobileNumberVerifiedCreds != null && !mobileNumberVerifiedCreds.isEmpty()) {
-            mobileNumberValidation = mobileNumberVerifiedCreds.get(0);
+        try {
+            if (mobileNumberCreds != null && !mobileNumberCreds.isEmpty() && mobileNumberCreds.get(0) != null) {
+                mobileNumber = KeycloakSmsUtil.checkAndFormatMobileNumber(mobileNumberCreds.get(0));
+            }
+            if (mobileNumberVerifiedCreds != null && !mobileNumberVerifiedCreds.isEmpty() && mobileNumberVerifiedCreds.get(0) != null) {
+                mobileNumberValidation = KeycloakSmsUtil.checkAndFormatMobileNumber(mobileNumberVerifiedCreds.get(0));
+            }
+        } catch (Exception e) {
+            logger.warn("Invalid phone number "+e.getLocalizedMessage());
         }
 
-        Theme theme = null;
-        Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
-        try {
-            theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
-        } catch (Exception e) {
-            logger.error("Unable to get theme required to send SMS", e);
-        }
-        if (mobileNumberValidation != null && KeycloakSmsUtil.validateTelephoneNumber(mobileNumberValidation, KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_REGEXP))
-                && mobileNumber != null && KeycloakSmsUtil.validateTelephoneNumber(mobileNumber, KeycloakSmsUtil.getMessage(theme, locale, KeycloakSmsConstants.MSG_MOBILE_REGEXP))) {
+        if (mobileNumber != null && mobileNumberValidation != null && mobileNumber.equalsIgnoreCase(mobileNumberValidation)) {
             // Mobile number is configured and validated
             context.ignore();
-        } else if (mobileNumberValidation == null){
+        } else if (mobileNumberValidation == null) {
             logger.debug("SMS validation required ...");
 
             KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);

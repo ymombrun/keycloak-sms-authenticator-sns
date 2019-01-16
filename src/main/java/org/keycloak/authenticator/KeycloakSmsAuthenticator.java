@@ -56,7 +56,7 @@ public class KeycloakSmsAuthenticator implements Authenticator {
         String mobileNumber =getMobileNumber(user);
         String mobileNumberVerified = getMobileNumberVerified(user);
 
-        if (onlyForVerification==false || isOnlyForVerificationMode(onlyForVerification, mobileNumber,mobileNumberVerified)){
+        if (onlyForVerification==false || isOnlyForVerificationMode(onlyForVerification, mobileNumber, mobileNumberVerified)){
             if (mobileNumber != null) {
                 // The mobile number is configured --> send an SMS
                 KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
@@ -74,12 +74,12 @@ public class KeycloakSmsAuthenticator implements Authenticator {
                 }
             } else {
                 boolean isAskingFor=KeycloakSmsUtil.getConfigBoolean(config, KeycloakSmsConstants.MOBILE_ASKFOR_ENABLED);
-                if(isAskingFor){
+                if (isAskingFor) {
                     //Enable access and ask for mobilenumber
                     logger.debug("Adding required action to get mobile number");
                     user.addRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
                     context.success();
-                }else {
+                } else {
                     // The mobile number is NOT configured --> complain
                     Response challenge = context.form()
                             .setError("sms-auth.not.mobile")
@@ -87,7 +87,7 @@ public class KeycloakSmsAuthenticator implements Authenticator {
                     context.failureChallenge(AuthenticationFlowError.CLIENT_CREDENTIALS_SETUP_REQUIRED, challenge);
                 }
             }
-        }else{
+        } else {
             logger.debug("Skip SMS code because onlyForVerification " + onlyForVerification + " or  mobileNumber==mobileNumberVerified");
             context.success();
         }
