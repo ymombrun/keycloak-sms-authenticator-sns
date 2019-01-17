@@ -24,7 +24,7 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
     }
 
     public void requiredActionChallenge(RequiredActionContext context) {
-        logger.debug("requiredActionChallenge called ...");
+        logger.info("requiredActionChallenge called ...");
 
         UserModel user = context.getUser();
 
@@ -70,29 +70,39 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
     public void processAction(RequiredActionContext context) {
         logger.debug("action called ... context = " + context);
 
-        KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
-        KeycloakSmsSenderService.CODE_STATUS status = provider.validateCode(context);
-        Response challenge;
+        boolean changeNumber = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("changeNumber"));
+        logger.info("Change Number from validation action ? "+changeNumber);
 
-        switch (status) {
-            case EXPIRED:
-                challenge = context.form()
-                        .setError("sms-auth.code.expired")
-                        .createForm("sms-validation.ftl");
-                context.challenge(challenge);
-                break;
+        if (changeNumber) {
+            context.getUser().removeAttribute("mobile_number");
+            context.getUser().removeRequiredAction(KeycloakSmsMobilenumberValidationRequiredAction.PROVIDER_ID);
+            context.getUser().addRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
+            context.success();
+        } else {
+            KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
+            KeycloakSmsSenderService.CODE_STATUS status = provider.validateCode(context);
+            Response challenge;
 
-            case INVALID:
-                challenge = context.form()
-                        .setError("sms-auth.code.invalid")
-                        .createForm("sms-validation.ftl");
-                context.challenge(challenge);
-                break;
+            switch (status) {
+                case EXPIRED:
+                    challenge = context.form()
+                            .setError("sms-auth.code.expired")
+                            .createForm("sms-validation.ftl");
+                    context.challenge(challenge);
+                    break;
 
-            case VALID:
-                context.success();
-                provider.updateVerifiedMobilenumber(context.getUser());
-                break;
+                case INVALID:
+                    challenge = context.form()
+                            .setError("sms-auth.code.invalid")
+                            .createForm("sms-validation.ftl");
+                    context.challenge(challenge);
+                    break;
+
+                case VALID:
+                    context.success();
+                    provider.updateVerifiedMobilenumber(context.getUser());
+                    break;
+            }
         }
     }
 
