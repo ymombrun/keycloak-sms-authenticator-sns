@@ -6,13 +6,13 @@ import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-public class ProfileUpdateListenerProviderFactory implements EventListenerProviderFactory {
+public class KeycloakProfileUpdateListenerProviderFactory implements EventListenerProviderFactory {
 
     public static final String PROVIDER_ID = "profile-update-sms";
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
-        return new ProfileUpdateListenerProvider(session);
+        return new KeycloakProfileUpdateListenerProvider(session);
     }
 
     @Override
