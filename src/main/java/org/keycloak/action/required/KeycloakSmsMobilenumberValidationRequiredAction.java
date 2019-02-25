@@ -24,7 +24,7 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
     }
 
     public void requiredActionChallenge(RequiredActionContext context) {
-        logger.info("requiredActionChallenge called ...");
+        logger.debug("requiredActionChallenge for Mobile Number Verification required action called ...");
 
         UserModel user = context.getUser();
 
@@ -59,8 +59,14 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
 
                 context.challenge(challenge);
             } else {
+                String attemptNumber = user.getAttributes().get("mobile_number").get(0);
+                logger.warn("Fail to send SMS to " + attemptNumber + ", removing number from profile");
+                context.getUser().removeAttribute("mobile_number");
+                context.getUser().removeRequiredAction(KeycloakSmsMobilenumberValidationRequiredAction.PROVIDER_ID);
+                context.getUser().addRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
+
                 Response challenge = context.form()
-                        .setError("sms-auth.not.send")
+                        .setError("sms-auth.not.send", attemptNumber)
                         .createForm("sms-validation-error.ftl");
                 context.challenge(challenge);
             }
@@ -71,14 +77,14 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
         logger.debug("action called ... context = " + context);
 
         boolean changeNumber = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("changeNumber"));
-        logger.info("Change Number from validation action ? "+changeNumber);
+        logger.debug("Change Number from validation action ? "+changeNumber);
 
         if (changeNumber) {
             context.getUser().removeAttribute("mobile_number");
             context.getUser().removeRequiredAction(KeycloakSmsMobilenumberValidationRequiredAction.PROVIDER_ID);
             context.getUser().addRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
             context.success();
-        } else {
+        } else if (context.getHttpRequest().getDecodedFormParameters().getFirst(KeycloakSmsConstants.ANSW_SMS_CODE) != null){
             KeycloakSmsSenderService provider = context.getSession().getProvider(KeycloakSmsSenderService.class);
             KeycloakSmsSenderService.CODE_STATUS status = provider.validateCode(context);
             Response challenge;
@@ -99,10 +105,13 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
                     break;
 
                 case VALID:
+                    logger.info("Mobile number successfully verified");
                     context.success();
                     provider.updateVerifiedMobilenumber(context.getUser());
                     break;
             }
+        } else {
+           context.success();
         }
     }
 

@@ -85,7 +85,7 @@ public class KeycloakSmsUtil {
 
         String formatted = phoneUtil.format(phone, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
 
-        logger.info("formatted number "+formatted+" from "+mobileNumber);
+        logger.debug("formatted number "+formatted+" from "+mobileNumber);
         return formatted;
     }
 

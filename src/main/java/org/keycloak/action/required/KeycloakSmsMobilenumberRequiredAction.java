@@ -22,7 +22,7 @@ public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProv
     }
 
     public void requiredActionChallenge(RequiredActionContext context) {
-        logger.debug("requiredActionChallenge for mobileNumber required action called ...");
+        logger.debug("requiredActionChallenge for Mobile Number required action called ...");
 
         UserModel user = context.getUser();
         List<String> mobileNumberCreds = user.getAttribute(KeycloakSmsConstants.ATTR_MOBILE);

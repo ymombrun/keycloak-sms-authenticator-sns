@@ -138,7 +138,7 @@ public class KeycloakSmsSenderServiceImpl implements KeycloakSmsSenderService {
             );
             return result;
         } catch(Exception e) {
-            logger.error("Fail to send SMS ", e );
+            logger.warn("Fail to send SMS : " + e.getLocalizedMessage());
             return false;
         }
     }

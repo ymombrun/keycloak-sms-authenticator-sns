@@ -65,7 +65,7 @@ public class ISendProdSMSService implements SMSService {
         result = resultM.indexOf("\"code\": \"0\"") > -1;
 
         if (!result) {
-            logger.error("Fail to send SMS by ISendPro: " + resultM );
+            logger.info("Fail to send SMS by ISendPro: " + resultM );
         }
         return result;
     }
