@@ -6,19 +6,20 @@
 
     <groupId>org.keycloak</groupId>
     <artifactId>sms-authenticator-validator</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jboss.logging.version>3.3.1.Final</jboss.logging.version>
-        <version.keycloak>4.8.2.Final</version.keycloak>
+        <version.keycloak>11.0.2</version.keycloak>
         <version.aws-java-sdk-sns>1.11.173</version.aws-java-sdk-sns>
         <version.libphonenumber>8.9.0</version.libphonenumber>
         <jboss-jaxrs-api_2.1_spec>1.0.1.Final</jboss-jaxrs-api_2.1_spec>
         <version.commons-lang>2.6</version.commons-lang>
+        <org.jboss.resteasy>3.12.1.Final</org.jboss.resteasy>
     </properties>
 
     <dependencies>
@@ -61,13 +62,26 @@
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-jaxrs</artifactId>
-            <version>3.0.24.Final</version>
+            <version>${org.jboss.resteasy}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-client</artifactId>
-            <version>3.0.24.Final</version>
+            <version>${org.jboss.resteasy}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jaxb-provider</artifactId>
+            <version>${org.jboss.resteasy}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jackson2-provider</artifactId>
+            <version>${org.jboss.resteasy}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -87,6 +101,12 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.googlecode.libphonenumber</groupId>
             <artifactId>libphonenumber</artifactId>
             <version>${version.libphonenumber}</version>
@@ -97,12 +117,5 @@
             <version>${version.commons-lang}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/junit/junit -->
-        <!--<dependency>-->
-            <!--<groupId>junit</groupId>-->
-            <!--<artifactId>junit</artifactId>-->
-            <!--<version>4.12</version>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
     </dependencies>
 </project>

@@ -40,6 +40,31 @@ public class KeycloakSmsMobilenumberValidationCredentialProvider implements Cred
         return secret;
     }
 
+    @Override
+    public String getType() {
+        return "password";
+    }
+
+    @Override
+    public CredentialModel createCredential(RealmModel realm, UserModel user, CredentialModel credentialModel) {
+        return getSecret(realm, user);
+    }
+
+    @Override
+    public boolean deleteCredential(RealmModel realm, UserModel user, String credentialId) {
+        return false;
+    }
+
+    @Override
+    public CredentialModel getCredentialFromModel(CredentialModel model) {
+        return null;
+    }
+
+    @Override
+    public CredentialTypeMetadata getCredentialTypeMetadata(CredentialTypeMetadataContext metadataContext) {
+        return null;
+    }
+
 
     @Override
     public boolean updateCredential(RealmModel realm, UserModel user, CredentialInput input) {

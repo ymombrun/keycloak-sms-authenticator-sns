@@ -105,7 +105,8 @@ public class KeycloakSmsMobilenumberValidationRequiredAction implements Required
                     break;
 
                 case VALID:
-                    logger.info("Mobile number successfully verified");
+                    logger.info("Mobile number successfully verified !");
+                    context.getUser().removeRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
                     context.success();
                     provider.updateVerifiedMobilenumber(context.getUser());
                     break;

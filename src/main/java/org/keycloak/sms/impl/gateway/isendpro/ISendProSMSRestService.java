@@ -9,17 +9,10 @@ import javax.ws.rs.core.MediaType;
  */
 
 @Consumes(MediaType.APPLICATION_JSON)
-@Produces({MediaType.TEXT_HTML})
+@Produces({MediaType.APPLICATION_JSON})
 public interface ISendProSMSRestService {
-    @GET
+    @POST
     @Path("/sms")
-    String send(
-            @QueryParam("keyid") String password,
-            @QueryParam("num") String phonenumber,
-            @QueryParam("sms") String message,
-            @QueryParam("tracker") String smsHttpId,
-            @QueryParam("emetteur") String from,
-            @QueryParam("nostop") String noStop
-    );
+    String send(SmsRequest smsRequest);
 }
 

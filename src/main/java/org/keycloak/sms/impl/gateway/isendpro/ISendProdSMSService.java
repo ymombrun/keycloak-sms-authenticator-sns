@@ -55,17 +55,27 @@ public class ISendProdSMSService implements SMSService {
     }
 
     public boolean send(String phoneNumber, String message, String login, String pw) {
-        boolean result;
+        boolean result = false;
 //        if (phoneNumber != null) {
 //            //Support only this format 3367...
 //            phoneNumber = phoneNumber.replace("+", "");
 //        }
+        SmsRequest sms = new SmsRequest()
+                .setKey(pw)
+                .setPhone(phoneNumber)
+                .setMessage(message)
+                .setTracker(UUID.randomUUID())
+                .setFrom(emetteur)
+                .setNoStop(1);
+        try {
+            String resultM = this.remoteService.send(sms);
+            result = resultM.indexOf("\"code\": \"0\"") > -1;
 
-        String resultM = this.remoteService.send(pw, phoneNumber, message, UUID.randomUUID().toString(), emetteur, "1");
-        result = resultM.indexOf("\"code\": \"0\"") > -1;
-
-        if (!result) {
-            logger.info("Fail to send SMS by ISendPro: " + resultM );
+            if (!result) {
+                logger.warn("Fail to send SMS by ISendPro: " + resultM);
+            }
+        } catch (Exception e) {
+            logger.error("Fail to send SMS to ISendPro " + sms.toString() + " :" +e.getMessage());
         }
         return result;
     }

@@ -93,11 +93,12 @@ public class KeycloakSmsMobilenumberRequiredAction implements RequiredActionProv
                 );
 
         if (mobileNumber != null && !numberAlreadyTaken) {
-            logger.debug("Valid mobile numbers supplied, save credential ...");
+            logger.info("Valid mobile numbers supplied, save credential and remove required action ...");
             List<String> mobileNumberList = new ArrayList<String>();
             mobileNumberList.add(mobileNumber);
 
             user.setAttribute(KeycloakSmsConstants.ATTR_MOBILE, mobileNumberList);
+            user.removeRequiredAction(KeycloakSmsMobilenumberRequiredAction.PROVIDER_ID);
             user.addRequiredAction(KeycloakSmsMobilenumberValidationRequiredAction.PROVIDER_ID);
             context.success();
         } else {
