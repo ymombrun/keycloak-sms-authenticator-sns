@@ -1,5 +1,5 @@
 import org.junit.Test;
-import org.keycloak.sms.impl.gateway.isendpro.ISendProdSMSService;
+import org.keycloak.gateway.isendpro.ISendProdSMSService;
 
 public class TestSms {
     @Test

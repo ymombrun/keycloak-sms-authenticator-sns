@@ -1,2 +1,2 @@
-org.keycloak.action.required.KeycloakSmsMobilenumberValidationRequiredActionFactory
-org.keycloak.action.required.KeycloakSmsMobilenumberRequiredActionFactory
+org.keycloak.action.required.MobileNumberSmsValidationRequiredActionFactory
+org.keycloak.action.required.MobileNumberRequiredActionFactory
