@@ -49,7 +49,7 @@ public class UserProfile {
             logger.debug("search for user with phone " + mobileNumber);
             numberAlreadyTaken = session
                     .users()
-                    .searchForUserByUserAttributeStream("mobile_number", mobileNumber, realm)
+                    .searchForUserByUserAttributeStream(realm, "mobile_number", mobileNumber)
                     .filter(existingUser -> !existingUser.equals(user))
                     .count() > 0;
         }

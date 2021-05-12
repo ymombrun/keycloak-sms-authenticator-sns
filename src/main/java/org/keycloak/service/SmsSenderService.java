@@ -17,9 +17,9 @@ public interface SmsSenderService extends Provider {
         EXPIRED
     }
 
-    boolean sendSmsCode(String mobileNumber, AuthenticationFlowContext context);
+    boolean sendSmsCode(String mobileNumber, AuthenticationFlowContext context, boolean forceSending);
 
-    boolean sendSmsCode(String mobileNumber, RequiredActionContext context);
+    boolean sendSmsCode(String mobileNumber, RequiredActionContext context, boolean forceSending);
 
     List getCodeDigits(KeycloakSession session, UserModel user);
 

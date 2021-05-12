@@ -69,6 +69,7 @@ public class ISendProdSMSService implements SMSGateway {
                 .setNoStop(1);
         try {
             String resultM = this.remoteService.send(sms);
+            logger.debugf("Isendpro response %s", resultM);
             result = resultM.indexOf("\"code\": \"0\"") > -1;
 
             if (!result) {

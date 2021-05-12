@@ -1,6 +1,7 @@
 package org.keycloak.service;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.spi.HttpRequest;
 import org.keycloak.Config;
@@ -39,7 +40,7 @@ public class SmsSenderServiceImpl implements SmsSenderService {
     private Config.Scope config;
 
     @Override
-    public boolean sendSmsCode(String mobileNumber, AuthenticationFlowContext context) {
+    public boolean sendSmsCode(String mobileNumber, AuthenticationFlowContext context, boolean forceSending) {
 
         int nrOfDigits = Configuration.getConfigInt(context.getAuthenticatorConfig(), Configuration.CONF_PRP_SMS_CODE_LENGTH, 4);
         logger.debug("Using nrOfDigits " + nrOfDigits);
@@ -50,22 +51,30 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         boolean isAlphaNumeric = Configuration.getConfigBoolean(context.getAuthenticatorConfig(), Configuration.CONF_PRP_SMS_CODE_ALPHANUMERIC, true); // 10 minutes in s
         logger.debug("Using alphanumeric " + isAlphaNumeric);
 
-        String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
-        storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+        boolean unexpired = hasUnexpiredSmsCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser());
 
-        Theme theme = null;
-        Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
-        try {
-            theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
-        } catch (Exception e) {
-            logger.error("Unable to get theme required to send SMS", e);
+        if (forceSending || !unexpired) {
+
+            String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
+            storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+
+            Theme theme = null;
+            Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
+            try {
+                theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
+            } catch (Exception e) {
+                logger.error("Unable to get theme required to send SMS", e);
+            }
+
+            logger.debugf("Sending SMS with gateway with cause : forced ? %b, unexpired ? %b", forceSending, unexpired);
+            return sendSmsCodeToGateway(mobileNumber, code, theme, locale);
+        } else {
+            return true;
         }
-
-        return sendSmsCodeToGateway(mobileNumber, code, theme, locale);
     }
 
     @Override
-    public boolean sendSmsCode(String mobileNumber, RequiredActionContext context) {
+    public boolean sendSmsCode(String mobileNumber, RequiredActionContext context, boolean forceSending) {
 
         // sharing conf with authenticator
         // used when the authenticator alias is the same as to realm name
@@ -82,18 +91,25 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         boolean isAlphaNumeric = Configuration.getConfigBoolean(authenticatorConfig, Configuration.CONF_PRP_SMS_CODE_ALPHANUMERIC);
         logger.debug("Using alphanumeric " + isAlphaNumeric);
 
-        String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
-        storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+        boolean unexpired = hasUnexpiredSmsCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser());
 
-        Theme theme = null;
-        Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
-        try {
-            theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
-        } catch (Exception e) {
-            logger.error("Unable to get theme required to send SMS", e);
+        if (forceSending || !unexpired) {
+            String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
+            storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+
+            Theme theme = null;
+            Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
+            try {
+                theme = context.getSession().theme().getTheme(context.getRealm().getLoginTheme(), Theme.Type.LOGIN);
+            } catch (Exception e) {
+                logger.error("Unable to get theme required to send SMS", e);
+            }
+
+            logger.debugf("Sending SMS with gateway with cause : forced ? %b, unexpired ? %b", forceSending, unexpired);
+            return sendSmsCodeToGateway(mobileNumber, code, theme, locale);
+        } else {
+            return true;
         }
-
-        return sendSmsCodeToGateway(mobileNumber, code, theme, locale);
     }
 
     public List getCodeDigits(KeycloakSession session, UserModel user) {
@@ -145,7 +161,7 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         String template = Sms.getMessage(theme, locale, Configuration.CONF_PRP_SMS_TEXT);
         String smsText = Sms.createMessage(template, code, mobileNumber);
 
-        logger.debug("Sending " + code + "  to mobileNumber " + mobileNumber);
+        logger.debugf("Sending %s to mobileNumber %s", code, mobileNumber);
         logger.debug("Using config : "+gateway+" - "+smsPwd+" - " +endpoint);
 
         boolean result;
@@ -207,10 +223,10 @@ public class SmsSenderServiceImpl implements SmsSenderService {
                 .findFirst();
 
         if (expectedCode.isPresent()) {
-            result = enteredCode.equals(expectedCode.get()) ? CODE_STATUS.VALID : CODE_STATUS.INVALID;
+            result = StringUtils.isNotEmpty(enteredCode) && enteredCode.equals(expectedCode.get()) ? CODE_STATUS.VALID : CODE_STATUS.INVALID;
             long now = new Date().getTime();
 
-            logger.debug("Valid code expires in " + (Long.parseLong(expTimeString.get()) - now) + " ms");
+            logger.debugf("Valid code expires in " + (Long.parseLong(expTimeString.get()) - now) + " ms");
             if (result == CODE_STATUS.VALID) {
                 if (expTimeString.isPresent() && Long.parseLong(expTimeString.get()) < now) {
                     logger.warn("Code is expired !!");
@@ -223,5 +239,13 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         }
         logger.debug("result : " + result);
         return result;
+    }
+
+    private boolean hasUnexpiredSmsCode(UserCredentialManager credentialManager, RealmModel realm, UserModel user) {
+        long now = new Date().getTime();
+        return credentialManager.getStoredCredentialsByTypeStream(realm, user, SmsCredentialProvider.USR_CRED_MDL_SMS_EXP_TIME)
+                .map(CredentialModel::getSecretData)
+                .mapToLong(expTimeString -> Long.parseLong(expTimeString))
+                .anyMatch(expTime -> expTime > now);
     }
 }

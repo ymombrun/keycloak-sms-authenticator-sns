@@ -14,7 +14,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jboss.logging.version>3.3.1.Final</jboss.logging.version>
-        <version.keycloak>12.0.4</version.keycloak>
+        <version.keycloak>13.0.0</version.keycloak>
         <version.aws-java-sdk-sns>1.11.173</version.aws-java-sdk-sns>
         <version.libphonenumber>8.9.0</version.libphonenumber>
         <jboss-jaxrs-api_2.1_spec>1.0.1.Final</jboss-jaxrs-api_2.1_spec>

@@ -39,9 +39,9 @@ public class SmsAuthenticator implements Authenticator {
                 SmsSenderService provider = context.getSession().getProvider(SmsSenderService.class);
                 logger.debug("Sending sms code from authenticator");
 
-                if ( provider.sendSmsCode(mobileNumber.get(), context)) {
+                if (provider.sendSmsCode(mobileNumber.get(), context, false)) {
                     Response challenge = context.form()
-                            .setAttribute("mobile_number", mobileNumber)
+                            .setAttribute("mobile_number", mobileNumber.get())
                             .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
                             .createForm("sms-validation.ftl");
                     context.challenge(challenge);
@@ -76,8 +76,10 @@ public class SmsAuthenticator implements Authenticator {
     @Override
     public void action(AuthenticationFlowContext context) {
         boolean changeNumber = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("changeNumber"));
+        boolean sendAgain = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("sendAgain"));
         var user = context.getUser();
         logger.debug("Change Number from validation action ? " + changeNumber);
+
         if (changeNumber) {
             UserProfile.removeMobileNumberAndUpdateActions(context.getUser());
             context.success();
@@ -89,7 +91,7 @@ public class SmsAuthenticator implements Authenticator {
             var mobileNumber = UserProfile.getMobileNumber(user, false);
             switch (status) {
                 case EXPIRED:
-                    provider.sendSmsCode(mobileNumber.get(), context);
+                    provider.sendSmsCode(mobileNumber.get(), context, false);
                     challenge = context.form()
                             .setError("sms-auth.code.expired")
                             .setAttribute("mobile_number", mobileNumber.orElse(null))
@@ -103,12 +105,21 @@ public class SmsAuthenticator implements Authenticator {
                         logger.debug("Calling context.attempted()");
                         context.attempted();
                     } else if (context.getExecution().getRequirement() == AuthenticationExecutionModel.Requirement.REQUIRED) {
-                        challenge = context.form()
-                                .setError("sms-auth.code.invalid")
-                                .setAttribute("mobile_number", mobileNumber.orElse(null))
-                                .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), user))
-                                .createForm("sms-validation.ftl");
-                        context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
+                        if (sendAgain) {
+                            provider.sendSmsCode(mobileNumber.get(), context, true);
+                            challenge = context.form()
+                                    .setAttribute("mobile_number", mobileNumber.orElse(null))
+                                    .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), user))
+                                    .createForm("sms-validation.ftl");
+                            context.challenge(challenge);
+                        } else {
+                            challenge = context.form()
+                                    .setError("sms-auth.code.invalid")
+                                    .setAttribute("mobile_number", mobileNumber.orElse(null))
+                                    .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), user))
+                                    .createForm("sms-validation.ftl");
+                            context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
+                        }
                     } else {
                         // Something strange happened
                         logger.warn("Undefined execution ...");

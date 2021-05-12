@@ -33,7 +33,7 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
             logger.debug("SMS validation required ...");
 
             SmsSenderService provider = context.getSession().getProvider(SmsSenderService.class);
-            if (provider.sendSmsCode(mobileNumber.get(), context)) {
+            if (provider.sendSmsCode(mobileNumber.get(), context, false)) {
                 Response challenge = context.form()
                         .setAttribute("mobile_number", mobileNumber.get())
                         .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
@@ -59,6 +59,7 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
         logger.debug("action called ... context = " + context);
 
         boolean changeNumber = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("changeNumber"));
+        boolean sendAgain = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("sendAgain"));
         logger.debug("Change Number from validation action ? " + changeNumber);
 
         if (changeNumber) {
@@ -72,7 +73,7 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
             var mobileNumber = UserProfile.getMobileNumber(user, false);
             switch (status) {
                 case EXPIRED:
-                    provider.sendSmsCode(mobileNumber.get(), context);
+                    provider.sendSmsCode(mobileNumber.get(), context, sendAgain);
                     challenge = context.form()
                             .setAttribute("mobile_number", mobileNumber.orElse(null))
                             .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
@@ -82,11 +83,19 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
                     break;
 
                 case INVALID:
-                    challenge = context.form()
-                            .setAttribute("mobile_number", mobileNumber.orElse(null))
-                            .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
-                            .setError("sms-auth.code.invalid")
-                            .createForm("sms-validation.ftl");
+                    if (sendAgain) {
+                        provider.sendSmsCode(mobileNumber.get(), context, true);
+                        challenge = context.form()
+                                .setAttribute("mobile_number", mobileNumber.orElse(null))
+                                .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), user))
+                                .createForm("sms-validation.ftl");
+                    } else {
+                        challenge = context.form()
+                                .setAttribute("mobile_number", mobileNumber.orElse(null))
+                                .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
+                                .setError("sms-auth.code.invalid")
+                                .createForm("sms-validation.ftl");
+                    }
                     context.challenge(challenge);
                     break;
 
