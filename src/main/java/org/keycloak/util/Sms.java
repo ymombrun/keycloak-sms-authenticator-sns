@@ -2,6 +2,7 @@ package org.keycloak.util;
 
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.jboss.logging.Logger;
 import org.keycloak.theme.Theme;
 
@@ -47,7 +48,7 @@ public class Sms {
         }catch (IOException e){
             logger.warn(key + "not found in messages");
         }
-        return result;
+        return StringEscapeUtils.unescapeJava(result);
     }
 
     public static String createMessage(String text,String code, String mobileNumber) {
@@ -55,6 +56,6 @@ public class Sms {
             text = text.replaceAll("%sms-code%", code);
             text = text.replaceAll("%phonenumber%", mobileNumber);
         }
-        return text;
+        return StringEscapeUtils.unescapeJava(text);
     }
 }

@@ -23,15 +23,15 @@ public class ProfileUpdateMobileNumberActions implements EventListenerProvider {
     public void onEvent(Event event) {
         if (event.getType().equals(EventType.UPDATE_PROFILE)) {
             logger.debug("Checking mobile number after profile update");
-            UserModel user = session.users().getUserById(event.getUserId(), session.getContext().getRealm());
+            UserModel user = session.users().getUserById(session.getContext().getRealm(), event.getUserId());
 
             var mobileNumber = UserProfile.getMobileNumber(user, false);
             var verifiedMobileNumber = UserProfile.getMobileNumber(user, true);
-
             if (mobileNumber.isPresent() && (!verifiedMobileNumber.isPresent() || !verifiedMobileNumber.get().equals(mobileNumber.get()))) {
                 logger.debug("Checking mobile number required");
                 // validation required
                 user.addRequiredAction(MobileNumberSmsValidationRequiredAction.PROVIDER_ID);
+                user.addRequiredAction(MobileNumberSmsValidationRequiredAction.FORCE_REFRESH_SMS_CODE);
                 if (verifiedMobileNumber.isPresent()) {
                     // removing verified as doesn't match
                     user.removeAttribute(UserProfile.ATTR_MOBILE_VERIFIED);

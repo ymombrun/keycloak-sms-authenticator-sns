@@ -5,7 +5,6 @@ import org.keycloak.authentication.RequiredActionContext;
 import org.keycloak.authentication.RequiredActionProvider;
 import org.keycloak.models.UserModel;
 import org.keycloak.service.SmsSenderService;
-import org.keycloak.service.SmsSenderServiceImpl;
 import org.keycloak.util.UserProfile;
 
 import javax.ws.rs.core.Response;
@@ -16,12 +15,13 @@ import javax.ws.rs.core.Response;
 public class MobileNumberSmsValidationRequiredAction implements RequiredActionProvider {
     private static Logger logger = Logger.getLogger(MobileNumberSmsValidationRequiredAction.class);
     public static final String PROVIDER_ID = "sms_auth_check_mobile_validation";
+    public static final String FORCE_REFRESH_SMS_CODE = "force_refresh_code";
 
     @Override
     public void requiredActionChallenge(RequiredActionContext context) {
         logger.debug("requiredActionChallenge for Mobile Number Verification required action called ...");
 
-        UserModel user = context.getUser();
+        UserModel user = context.getSession().users().getUserById(context.getRealm(), context.getUser().getId());
 
         var mobileNumber = UserProfile.getMobileNumber(user, false);
         var verifiedMobileNumber = UserProfile.getMobileNumber(user, true);
@@ -30,24 +30,43 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
             // Mobile number is configured and verified
             context.ignore();
         } else if (mobileNumber.isPresent()) {
-            logger.debug("SMS validation required ...");
-
+            var forceCode = user.getRequiredActionsStream().anyMatch(requiredAction -> requiredAction.equals(MobileNumberSmsValidationRequiredAction.FORCE_REFRESH_SMS_CODE));
+            logger.debugf("SMS validation required, forced ?:%b...", forceCode);
             SmsSenderService provider = context.getSession().getProvider(SmsSenderService.class);
-            if (provider.sendSmsCode(mobileNumber.get(), context, false)) {
-                Response challenge = context.form()
-                        .setAttribute("mobile_number", mobileNumber.get())
-                        .setAttribute("code_digits", provider.getCodeDigits(context.getSession(), context.getUser()))
-                        .createForm("sms-validation.ftl");
 
-                context.challenge(challenge);
+            var numberAlreadyTaken = UserProfile.checkNumberAlreadyTaken(
+                    mobileNumber.get(),
+                    context.getSession(),
+                    user,
+                    context.getRealm()
+            );
+
+            if (numberAlreadyTaken) {
+                user.addRequiredAction(MobileNumberRequiredAction.PROVIDER_ID);
+                logger.warn("Number already taken, context failure");
+                context.failure();
             } else {
-                logger.warn("Fail to send SMS to " + mobileNumber.get() + ", removing number from profile");
-                UserProfile.removeMobileNumberAndUpdateActions(user);
+                if (provider.sendSmsCode(mobileNumber.get(), context, forceCode)) {
+                    if (forceCode) {
+                        context.getUser().removeRequiredAction(MobileNumberSmsValidationRequiredAction.FORCE_REFRESH_SMS_CODE);
+                    }
+                    var digitNumbers = provider.getCodeDigits(context.getSession(), context.getUser());
+                    logger.debugf("Challenging SMS validation %d", digitNumbers.size());
+                    Response challenge = context.form()
+                            .setAttribute("mobile_number", mobileNumber.get())
+                            .setAttribute("code_digits", digitNumbers)
+                            .createForm("sms-validation.ftl");
 
-                Response challenge = context.form()
-                        .setError("sms-auth.not.send", mobileNumber.get())
-                        .createForm("sms-validation-error.ftl");
-                context.challenge(challenge);
+                    context.challenge(challenge);
+                } else {
+                    logger.warn("Fail to send SMS to " + mobileNumber.get() + ", removing number from profile");
+                    UserProfile.removeMobileNumberAndUpdateActions(user);
+
+                    Response challenge = context.form()
+                            .setError("sms-auth.not.send", mobileNumber.get())
+                            .createForm("sms-validation-error.ftl");
+                    context.challenge(challenge);
+                }
             }
         }
     }
@@ -60,12 +79,12 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
 
         boolean changeNumber = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("changeNumber"));
         boolean sendAgain = Boolean.valueOf(context.getHttpRequest().getFormParameters().getFirst("sendAgain"));
-        logger.debug("Change Number from validation action ? " + changeNumber);
+        logger.debugf("Change Number from validation action ?%b, force ?%b ", changeNumber, sendAgain);
 
         if (changeNumber) {
             UserProfile.removeMobileNumberAndUpdateActions(user);
             context.success();
-        } else if (context.getHttpRequest().getDecodedFormParameters().getFirst(SmsSenderServiceImpl.SMS_CODE_FORM_FIELD) != null){
+        } else {
             SmsSenderService provider = context.getSession().getProvider(SmsSenderService.class);
             SmsSenderService.CODE_STATUS status = provider.validateCode(context);
             Response challenge;
@@ -105,8 +124,6 @@ public class MobileNumberSmsValidationRequiredAction implements RequiredActionPr
                     context.success();
                     break;
             }
-        } else {
-           context.success();
         }
     }
 

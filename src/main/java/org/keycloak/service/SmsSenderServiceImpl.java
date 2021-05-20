@@ -56,7 +56,13 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         if (forceSending || !unexpired) {
 
             String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
-            storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+            storeSMSCode(
+                    context.getSession().userCredentialManager(),
+                    context.getRealm(),
+                    context.getUser(),
+                    code,
+                    new Date().getTime() + (ttl * 1000)
+            );
 
             Theme theme = null;
             Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
@@ -95,7 +101,14 @@ public class SmsSenderServiceImpl implements SmsSenderService {
 
         if (forceSending || !unexpired) {
             String code = generateSmsCode(nrOfDigits, isAlphaNumeric);
-            storeSMSCode(context.getSession().userCredentialManager(), context.getRealm(), context.getUser(), code, new Date().getTime() + (ttl * 1000));
+            logger.debugf("Storing code for user %s", context.getUser());
+            storeSMSCode(
+                    context.getSession().userCredentialManager(),
+                    context.getRealm(),
+                    context.getUser(),
+                    code,
+                    new Date().getTime() + (ttl * 1000)
+            );
 
             Theme theme = null;
             Locale locale = context.getSession().getContext().resolveLocale(context.getUser());
@@ -199,10 +212,11 @@ public class SmsSenderServiceImpl implements SmsSenderService {
         UserCredentialModel credentials = new UserCredentialModel();
         credentials.setType(SmsCredentialProvider.USR_CRED_MDL_SMS_CODE);
         credentials.setValue(code);
-        credentialManager.updateCredential(realm, user, credentials);
+        var smsCodeStored = credentialManager.updateCredential(realm, user, credentials);
         credentials.setType(SmsCredentialProvider.USR_CRED_MDL_SMS_EXP_TIME);
         credentials.setValue((expiringAt).toString());
-        credentialManager.updateCredential(realm, user, credentials);
+        var smsExpStored = credentialManager.updateCredential(realm, user, credentials);
+        logger.debugf("Code stored %b, %b", smsCodeStored, smsExpStored);
     }
 
     private CODE_STATUS validateCode(UserCredentialManager credentialManager, RealmModel realm, UserModel user, HttpRequest request) {
