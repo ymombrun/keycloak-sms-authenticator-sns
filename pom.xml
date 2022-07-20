@@ -6,7 +6,7 @@
 
     <groupId>org.keycloak</groupId>
     <artifactId>sms-authenticator-validator</artifactId>
-    <version>1.3</version>
+    <version>1.4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
